@@ -1,6 +1,7 @@
 from django.http import Http404
 from django.contrib.auth import get_user_model
 
+from chat.signals import broadcast_published
 from .models import (
     ChatSession, ChatSessionMember, ChatSessionMessage, deserialize_user
 )
@@ -75,6 +76,19 @@ class ChatSessionMessageView(APIView):
 
         chat_session_message = ChatSessionMessage.objects.create(
             user=user, chat_session=chat_session, content=message
+        )
+        pub_args = {
+            'source': user,
+            'source_display_name': user.get_full_name(),
+            'obj': chat_session_message.id,
+            'short_description': 'New message',
+            'extra_data': {
+                'uri': chat_session.uri,
+                'message': chat_session_message.to_json()
+            }
+        }
+        broadcast_published.send(
+            sender=self.__class__, **pub_args
         )
 
         return Response({
