@@ -53,8 +53,9 @@
           </div>
         </div>
 
-        <div v-else-if="!loading && !sessionStarted">
-          <h3 class="text-center">Welcome {{ username }}!</h3>
+        <div v-else-if="!loading && !sessionStarted" class="container">
+          <div class="row justify-content-center">
+            <h3 class="text-center">Welcome {{ username }}!</h3>
           <br/>
           <p class="text-center">
             To start chatting with friends click on the button below, it'll start a new chat session
@@ -62,11 +63,16 @@
           </p>
           <br/>
           <button @click="startChatSession" class="btn btn-primary btn-lg btn-block">Start Chatting</button>
+          </div>
+          <div class="row mt-2">
+            <input v-model="uri" type="text" placeholder="Type chat session uri" class="col-8">
+            <button @click="enterChatSession" class="btn btn-primary btn-lg btn-block col-4 p-1">Join Chat Session</button>
+          </div>
         </div>
 
         <div v-else>
-          <div class="loading">
-            <img src="../assets/loading.svg"/>
+          <div class="text-center">
+            <img src="../assets/loading.svg" width="150" class="m-5">
             <h4>Loading...</h4>
           </div>
         </div>
@@ -83,7 +89,8 @@
                 loading: true,
                 messages: [],
                 message: "",
-                sessionStarted: false
+                sessionStarted: false,
+                uri: ""
             };
         },
         created() {
@@ -100,7 +107,7 @@
             }
             setTimeout(() => {
                 this.loading = false;
-            }, 2000);
+            }, 9000);
         },
         updated() {
             // Scroll to bottom of Chat window
@@ -110,6 +117,11 @@
             }
         },
         methods: {
+            enterChatSession() {
+                this.sessionStarted = true;
+                this.$router.push(`/chats/${this.uri}/`);
+                this.connectToWebSocket();
+            },
             startChatSession() {
                 $.post("http://localhost:8000/api/chats/", data => {
                     alert(
@@ -182,7 +194,6 @@
             },
             onMessage(event) {
                 const message = JSON.parse(event.data);
-                console.log(message);
                 this.messages.push(message);
             },
             onError(event) {
@@ -207,11 +218,6 @@
   li {
     display: inline-block;
     margin: 0 10px;
-  }
-
-  .loading {
-    text-align: center;
-    margin-top: 150px;
   }
 
   .btn {
