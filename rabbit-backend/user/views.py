@@ -11,6 +11,7 @@ User = get_user_model()
 
 
 class UserViewSet(ModelViewSet):
+    """유저 create, retrieve, update, delete """
     model = User
     serializer_class = UserSerializer
     queryset = User.objects.all()
@@ -21,6 +22,7 @@ class UserViewSet(ModelViewSet):
 
 
 class Login(APIView):
+    """로그인"""
     def post(self, request, *args, **kwargs):
         data = {
             'username': self.request.data.get('username', None),
