@@ -74,7 +74,7 @@ class ChatSessionMessageView(APIView):
         chat_session = ChatSession.objects.get(uri=uri)
 
         chat_session_message = ChatSessionMessage.objects.create(
-            user=user, chat_session=chat_session, message=message
+            user=user, chat_session=chat_session, content=message
         )
 
         return Response({
