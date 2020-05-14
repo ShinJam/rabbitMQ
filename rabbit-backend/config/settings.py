@@ -12,8 +12,10 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/3.0/howto/deployment/checklist/
 
-# SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = '^8t4h_lryx)^-=n$wxxv9h=j@otlgv=()5*)=(17cu2d5k$!3='
+
+with open(os.path.join(os.path.dirname(BASE_DIR))) as SECRETS:
+    SECRET_KEY = SECRETS['secret_key']
+    AMQP_URL = SECRETS['amqp_url']
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
