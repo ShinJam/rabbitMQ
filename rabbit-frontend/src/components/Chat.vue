@@ -5,7 +5,8 @@
         <div v-if="!loading && sessionStarted" id="chat-container" class="card">
           <div
             class="card-header text-white text-center font-weight-bold subtle-blue-gradient"
-          >Share the page URL to invite new friends</div>
+          >Share the page URL to invite new friends
+          </div>
 
           <div class="card-body">
             <div class="container chat-body" ref="chatBody">
@@ -42,7 +43,7 @@
             <form @submit.prevent="postMessage">
               <div class="row">
                 <div class="col-sm-10">
-                  <input v-model="message" type="text" placeholder="Type a message" />
+                  <input v-model="message" type="text" placeholder="Type a message"/>
                 </div>
                 <div class="col-sm-2">
                   <button class="btn btn-primary">Send</button>
@@ -54,18 +55,18 @@
 
         <div v-else-if="!loading && !sessionStarted">
           <h3 class="text-center">Welcome {{ username }}!</h3>
-          <br />
+          <br/>
           <p class="text-center">
             To start chatting with friends click on the button below, it'll start a new chat session
             and then you can invite your friends over to chat!
           </p>
-          <br />
+          <br/>
           <button @click="startChatSession" class="btn btn-primary btn-lg btn-block">Start Chatting</button>
         </div>
 
         <div v-else>
           <div class="loading">
-            <img src="../assets/disqus.svg" />
+            <img src="../assets/loading.svg"/>
             <h4>Loading...</h4>
           </div>
         </div>
@@ -75,212 +76,226 @@
 </template>
 
 <script>
-const $ = window.jQuery;
-export default {
-  data() {
-    return {
-      loading: true,
-      messages: [],
-      message: "",
-      sessionStarted: false
+    const $ = window.jQuery;
+    export default {
+        data() {
+            return {
+                loading: true,
+                messages: [],
+                message: "",
+                sessionStarted: false
+            };
+        },
+        created() {
+            this.username = sessionStorage.getItem("username");
+            // Setup headers for all requests
+            $.ajaxSetup({
+                headers: {
+                    Authorization: `Token ${sessionStorage.getItem("authToken")}`
+                }
+            });
+            if (this.$route.params.uri) {
+                this.joinChatSession();
+                this.connectToWebSocket();
+            }
+            setTimeout(() => {
+                this.loading = false;
+            }, 2000);
+        },
+        updated() {
+            // Scroll to bottom of Chat window
+            const chatBody = this.$refs.chatBody;
+            if (chatBody) {
+                chatBody.scrollTop = chatBody.scrollHeight;
+            }
+        },
+        methods: {
+            startChatSession() {
+                $.post("http://localhost:8000/api/chats/", data => {
+                    alert(
+                        "A new session has been created you'll be redirected automatically"
+                    );
+                    this.sessionStarted = true;
+                    this.$router.push(`/chats/${data.uri}/`);
+                    this.connectToWebSocket();
+                }).fail(response => {
+                    alert(response.responseText);
+                });
+            },
+            postMessage(event) {
+                const data = {message: this.message};
+                $.post(
+                    `http://localhost:8000/api/chats/${this.$route.params.uri}/messages/`,
+                    data,
+                    data => {
+                        this.message = ""; // clear the message after sending
+                    }
+                ).fail(response => {
+                    alert(response.responseText);
+                });
+            },
+            joinChatSession() {
+                const uri = this.$route.params.uri;
+                $.ajax({
+                    url: `http://localhost:8000/api/chats/${uri}/`,
+                    data: {username: this.username},
+                    type: "PATCH",
+                    success: data => {
+                        const user = data.members.find(
+                            member => member.username === this.username
+                        );
+                        if (user) {
+                            // The user belongs/has joined the session
+                            this.sessionStarted = true;
+                            this.fetchChatSessionHistory();
+                        }
+                    }
+                });
+            },
+            fetchChatSessionHistory() {
+                $.get(
+                    `http://127.0.0.1:8000/api/chats/${this.$route.params.uri}/messages/`,
+                    data => {
+                        this.messages = data.messages;
+                        setTimeout(() => {
+                            this.loading = false;
+                        }, 2000);
+                    }
+                );
+            },
+            connectToWebSocket() {
+                const websocket = new WebSocket(
+                    `ws://localhost:8081/${this.$route.params.uri}`
+                );
+                websocket.onopen = this.onOpen;
+                websocket.onclose = this.onClose;
+                websocket.onmessage = this.onMessage;
+                websocket.onerror = this.onError;
+            },
+            onOpen(event) {
+                console.log("Connection opened.", event.data);
+            },
+            onClose(event) {
+                console.log("Connection closed.", event.data);
+                // Try and Reconnect after five seconds
+                setTimeout(this.connectToWebSocket, 5000);
+            },
+            onMessage(event) {
+                const message = JSON.parse(event.data);
+                console.log(message);
+                this.messages.push(message);
+            },
+            onError(event) {
+                alert("An error occured:", event.data);
+            }
+        }
     };
-  },
-  created() {
-    this.username = sessionStorage.getItem("username");
-    // Setup headers for all requests
-    $.ajaxSetup({
-      headers: {
-        Authorization: `Token ${sessionStorage.getItem("authToken")}`
-      }
-    });
-    if (this.$route.params.uri) {
-      this.joinChatSession();
-      this.connectToWebSocket();
-    }
-    setTimeout(() => {
-      this.loading = false;
-    }, 2000);
-    // setInterval(this.fetchChatSessionHistory, 1000)
-  },
-  updated() {
-    // Scroll to bottom of Chat window
-    const chatBody = this.$refs.chatBody;
-    if (chatBody) {
-      chatBody.scrollTop = chatBody.scrollHeight;
-    }
-  },
-  methods: {
-    startChatSession() {
-      $.post("http://localhost:8000/api/chats/", data => {
-        alert(
-          "A new session has been created you'll be redirected automatically"
-        );
-        this.sessionStarted = true;
-        this.$router.push(`/chats/${data.uri}/`);
-        this.connectToWebSocket();
-      }).fail(response => {
-        alert(response.responseText);
-      });
-    },
-    postMessage(event) {
-      const data = { message: this.message };
-      $.post(
-        `http://localhost:8000/api/chats/${this.$route.params.uri}/messages/`,
-        data,
-        data => {
-          this.message = ""; // clear the message after sending
-        }
-      ).fail(response => {
-        alert(response.responseText);
-      });
-    },
-    joinChatSession() {
-      const uri = this.$route.params.uri;
-      $.ajax({
-        url: `http://localhost:8000/api/chats/${uri}/`,
-        data: { username: this.username },
-        type: "PATCH",
-        success: data => {
-          const user = data.members.find(
-            member => member.username === this.username
-          );
-          if (user) {
-            // The user belongs/has joined the session
-            this.sessionStarted = true;
-            this.fetchChatSessionHistory();
-          }
-        }
-      });
-    },
-    fetchChatSessionHistory() {
-      $.get(
-        `http://127.0.0.1:8000/api/chats/${this.$route.params.uri}/messages/`,
-        data => {
-          this.messages = data.messages;
-          setTimeout(() => {
-            this.loading = false;
-          }, 2000);
-        }
-      );
-    },
-    connectToWebSocket() {
-      const websocket = new WebSocket(
-        `ws://localhost:8081/${this.$route.params.uri}`
-      );
-      websocket.onopen = this.onOpen;
-      websocket.onclose = this.onClose;
-      websocket.onmessage = this.onMessage;
-      websocket.onerror = this.onError;
-    },
-    onOpen(event) {
-      console.log("Connection opened.", event.data);
-    },
-    onClose(event) {
-      console.log("Connection closed.", event.data);
-      // Try and Reconnect after five seconds
-      setTimeout(this.connectToWebSocket, 5000);
-    },
-    onMessage(event) {
-      const message = JSON.parse(event.data);
-      console.log(message);
-      this.messages.push(message);
-    },
-    onError(event) {
-      alert("An error occured:", event.data);
-    }
-  }
-};
 </script>
 
 <!-- Add "scoped" attribute to limit CSS to this component only -->
 <style scoped>
-h1,
-h2 {
-  font-weight: normal;
-}
-ul {
-  list-style-type: none;
-  padding: 0;
-}
-li {
-  display: inline-block;
-  margin: 0 10px;
-}
-.loading {
-  text-align: center;
-  margin-top: 150px;
-}
-.btn {
-  border-radius: 0 !important;
-}
-.card-footer input[type="text"] {
-  background-color: #ffffff;
-  color: #444444;
-  padding: 7px;
-  font-size: 13px;
-  border: 2px solid #cccccc;
-  width: 100%;
-  height: 38px;
-}
-.card-header a {
-  text-decoration: underline;
-}
-.card-body {
-  background-color: #ddd;
-}
-.chat-body {
-  margin-top: -15px;
-  margin-bottom: -5px;
-  height: 380px;
-  overflow-y: auto;
-}
-.speech-bubble {
-  display: inline-block;
-  position: relative;
-  border-radius: 0.4em;
-  padding: 10px;
-  background-color: #fff;
-  font-size: 14px;
-}
-.subtle-blue-gradient {
-  background: linear-gradient(45deg, #004bff, #007bff);
-}
-.speech-bubble-user:after {
-  content: "";
-  position: absolute;
-  right: 4px;
-  top: 10px;
-  width: 0;
-  height: 0;
-  border: 20px solid transparent;
-  border-left-color: #007bff;
-  border-right: 0;
-  border-top: 0;
-  margin-top: -10px;
-  margin-right: -20px;
-}
-.speech-bubble-peer:after {
-  content: "";
-  position: absolute;
-  left: 3px;
-  top: 10px;
-  width: 0;
-  height: 0;
-  border: 20px solid transparent;
-  border-right-color: #ffffff;
-  border-top: 0;
-  border-left: 0;
-  margin-top: -10px;
-  margin-left: -20px;
-}
-.chat-section:first-child {
-  margin-top: 10px;
-}
-.chat-section {
-  margin-top: 15px;
-}
-.send-section {
-  margin-bottom: -20px;
-  padding-bottom: 10px;
-}
+  h1,
+  h2 {
+    font-weight: normal;
+  }
+
+  ul {
+    list-style-type: none;
+    padding: 0;
+  }
+
+  li {
+    display: inline-block;
+    margin: 0 10px;
+  }
+
+  .loading {
+    text-align: center;
+    margin-top: 150px;
+  }
+
+  .btn {
+    border-radius: 0 !important;
+  }
+
+  .card-footer input[type="text"] {
+    background-color: #ffffff;
+    color: #444444;
+    padding: 7px;
+    font-size: 13px;
+    border: 2px solid #cccccc;
+    width: 100%;
+    height: 38px;
+  }
+
+  .card-header a {
+    text-decoration: underline;
+  }
+
+  .card-body {
+    background-color: #ddd;
+  }
+
+  .chat-body {
+    margin-top: -15px;
+    margin-bottom: -5px;
+    height: 380px;
+    overflow-y: auto;
+  }
+
+  .speech-bubble {
+    display: inline-block;
+    position: relative;
+    border-radius: 0.4em;
+    padding: 10px;
+    background-color: #fff;
+    font-size: 14px;
+  }
+
+  .subtle-blue-gradient {
+    background: linear-gradient(45deg, #004bff, #007bff);
+  }
+
+  .speech-bubble-user:after {
+    content: "";
+    position: absolute;
+    right: 4px;
+    top: 10px;
+    width: 0;
+    height: 0;
+    border: 20px solid transparent;
+    border-left-color: #007bff;
+    border-right: 0;
+    border-top: 0;
+    margin-top: -10px;
+    margin-right: -20px;
+  }
+
+  .speech-bubble-peer:after {
+    content: "";
+    position: absolute;
+    left: 3px;
+    top: 10px;
+    width: 0;
+    height: 0;
+    border: 20px solid transparent;
+    border-right-color: #ffffff;
+    border-top: 0;
+    border-left: 0;
+    margin-top: -10px;
+    margin-left: -20px;
+  }
+
+  .chat-section:first-child {
+    margin-top: 10px;
+  }
+
+  .chat-section {
+    margin-top: 15px;
+  }
+
+  .send-section {
+    margin-bottom: -20px;
+    padding-bottom: 10px;
+  }
 </style>
