@@ -2,6 +2,10 @@
 # Created by https://www.gitignore.io/api/vue,linux,macos,django,python,pycharm,windows
 # Edit at https://www.gitignore.io/?templates=vue,linux,macos,django,python,pycharm,windows
 
+### secret ###
+rabbit-backend/secrets.json
+
+
 ### Django ###
 *.log
 *.pot
