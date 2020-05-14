@@ -18,7 +18,7 @@ class ChatSessionView(APIView):
         user = request.user
 
         chat_session = ChatSession.objects.create()
-        chat_session.messages.add(user)
+        chat_session.members.add(user)
 
         return Response({
             'status': 'SUCCESS', 'uri': chat_session.uri,
