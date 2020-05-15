@@ -118,10 +118,9 @@
         },
         methods: {
             enterChatSession(uri) {
-                this.sessionStarted = true;
                 this.$router.push(`/chats/${uri}/`);
                 this.connectToWebSocket();
-                this.joinChatSession()
+                this.joinChatSession();
             },
             startChatSession() {
                 $.post("http://localhost:8000/api/chats/", data => {
@@ -155,11 +154,8 @@
                         const user = data.members.find(
                             member => member.username === this.username
                         );
-                        if (user) {
-                            // The user belongs/has joined the session
-                            this.sessionStarted = true;
-                            this.fetchChatSessionHistory();
-                        }
+                        this.sessionStarted = true;
+                        this.fetchChatSessionHistory();
                     }
                 });
             },
