@@ -66,7 +66,7 @@
           </div>
           <div class="row mt-2">
             <input v-model="uri" type="text" placeholder="Type chat session uri" class="col-8">
-            <button @click="enterChatSession" class="btn btn-primary btn-lg btn-block col-4 p-1">Join Chat Session</button>
+            <button @click="enterChatSession(uri)" class="btn btn-primary btn-lg btn-block col-4 p-1">Join Chat Session</button>
           </div>
         </div>
 
@@ -107,7 +107,7 @@
             }
             setTimeout(() => {
                 this.loading = false;
-            }, 9000);
+            }, 2000);
         },
         updated() {
             // Scroll to bottom of Chat window
@@ -117,19 +117,18 @@
             }
         },
         methods: {
-            enterChatSession() {
+            enterChatSession(uri) {
                 this.sessionStarted = true;
-                this.$router.push(`/chats/${this.uri}/`);
+                this.$router.push(`/chats/${uri}/`);
                 this.connectToWebSocket();
+                this.joinChatSession()
             },
             startChatSession() {
                 $.post("http://localhost:8000/api/chats/", data => {
                     alert(
                         "A new session has been created you'll be redirected automatically"
                     );
-                    this.sessionStarted = true;
-                    this.$router.push(`/chats/${data.uri}/`);
-                    this.connectToWebSocket();
+                    this.enterChatSession(data.uri);
                 }).fail(response => {
                     alert(response.responseText);
                 });
