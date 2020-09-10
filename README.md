@@ -104,3 +104,6 @@ $ docker run -it --rm --name rabbitmq -p 5672:5672 -p 15672:15672 rabbitmq:3-man
 # Run uWSGI(localhost:8081) with websocket and gevent
 $ uwsgi --http :8081 --gevent 100 --module websocket --gevent-monkey-patch --master
 ```
+
+## Reference
+- [github.com/danidee10/Chatire](https://github.com/danidee10/Chatire)
